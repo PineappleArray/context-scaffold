@@ -1,0 +1,36 @@
+# === LLM Inference & Model Loading ===
+vllm>=0.8.0
+transformers>=4.45.0
+torch>=2.4.0
+accelerate>=1.0.0
+huggingface-hub>=0.25.0
+
+# === Topic Extraction & Embeddings ===
+sentence-transformers>=3.0.0
+spacy>=3.7.0
+keybert>=0.8.0
+
+# === Staleness Scoring / Decay ===
+numpy>=1.26.0
+scipy>=1.13.0
+
+# === Per-User Topic Store (NoSQL) ===
+pymongo>=4.8.0
+redis>=5.0.0
+
+# === Evaluation (LoCoMo Benchmark) ===
+datasets>=3.0.0
+rouge-score>=0.1.2
+nltk>=3.9.0
+bert-score>=0.3.13
+
+# === API & Serving ===
+fastapi>=0.115.0
+uvicorn>=0.30.0
+pydantic>=2.9.0
+sse-starlette>=2.1.0
+
+# === Utilities ===
+python-dotenv>=1.0.0
+tqdm>=4.66.0
+loguru>=0.7.0
