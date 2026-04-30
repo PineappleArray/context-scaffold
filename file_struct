@@ -1,0 +1,151 @@
+context-scaffold/
+│
+├── .gitignore
+├── .env
+├── requirements.txt
+├── README.md
+├── docker-compose.yml          # Redis + MongoDB + ChromaDB containers
+│
+├── app/
+│   ├── __init__.py
+│   ├── main.py                 # FastAPI app entry point, CORS, lifespan
+│   │   └── create_app()
+│   │
+│   ├── config.py               # Load .env, all control parameters (module ⑤)
+│   │   └── class Settings
+│   │       ├── decay: float = 0.5
+│   │       ├── retrieval_threshold: float = -1.0
+│   │       ├── noise_sigma: float = 0.25
+│   │       ├── speech_in_weight: float = 0.6
+│   │       ├── max_topics_per_user: int = 200
+│   │       └── context_token_budget: int = 4096
+│   │
+│   ├── routes/
+│   │   ├── __init__.py
+│   │   ├── chat.py             # POST /api/v1/chat (module ①)
+│   │   │   └── handle_chat()         # orchestrates the full pipeline
+│   │   │
+│   │   ├── memory.py           # memory endpoints (modules ③ ④)
+│   │   │   ├── retrieve()            # POST /api/v1/memory/retrieve
+│   │   │   ├── store()               # POST /api/v1/memory/store
+│   │   │   └── reinforce()           # PATCH /api/v1/memory/reinforce
+│   │   │
+│   │   ├── topics.py           # POST /api/v1/topics/extract (module ②)
+│   │   │   └── extract_topics()
+│   │   │
+│   │   ├── context.py          # POST /api/v1/context/build (module ②)
+│   │   │   └── build_context()
+│   │   │
+│   │   └── params.py           # GET/PUT /api/v1/params (module ⑤)
+│   │       ├── get_params()
+│   │       └── update_params()
+│   │
+│   ├── core/
+│   │   ├── __init__.py
+│   │   │
+│   │   ├── activation.py       # ACT-R math (module ③ activation calculation)
+│   │   │   ├── base_level_learning(timestamps, current_time, decay)
+│   │   │   │   └── returns: float   # B(m) = ln(Σ t_k^(-d))
+│   │   │   │
+│   │   │   ├── spreading_activation(query_emb, topic_emb, context_chunks, weights)
+│   │   │   │   └── returns: float   # SA = Σ W_j * cos_sim(query, topic)
+│   │   │   │
+│   │   │   ├── add_noise(sigma)
+│   │   │   │   └── returns: float   # ε ~ Normal(0, σ)
+│   │   │   │
+│   │   │   └── total_activation(timestamps, query_emb, topic_emb, ...)
+│   │   │       └── returns: ActivationResult  # A(m) = B + SA + ε
+│   │   │
+│   │   ├── topic_extractor.py  # topic extraction (module ② input processing)
+│   │   │   ├── __init__(self)        # loads KeyBERT + spaCy models
+│   │   │   ├── extract(message)      # pull topics/entities from a message
+│   │   │   │   └── returns: list[Topic]
+│   │   │   └── link_existing(new_topics, user_topics)
+│   │   │       └── returns: list[TopicLink]  # cosine sim to existing topics
+│   │   │
+│   │   ├── context_builder.py  # context window assembly (module ② response gen)
+│   │   │   ├── build(session_id, message, active_users, max_tokens)
+│   │   │   │   └── returns: ContextWindow
+│   │   │   ├── rank_topics(retrieved_topics, token_budget)
+│   │   │   │   └── returns: list[Topic]  # fit best topics under token limit
+│   │   │   └── format_context(topics, recent_messages)
+│   │   │       └── returns: str          # formatted string for LLM prompt
+│   │   │
+│   │   └── production_rules.py # orchestration logic (module ② production rules)
+│   │       ├── process_input(message, user_id, session_id)
+│   │       │   └── decides: extract → store → retrieve → build → infer
+│   │       ├── should_store(topic, confidence_threshold)
+│   │       │   └── returns: bool
+│   │       └── should_retrieve(message_type)
+│   │           └── returns: bool  # skip retrieval for greetings etc.
+│   │
+│   ├── db/
+│   │   ├── __init__.py
+│   │   │
+│   │   ├── chroma_client.py    # ChromaDB operations (module ③ vector store)
+│   │   │   ├── init_collection(user_id)
+│   │   │   ├── upsert_topic(topic_id, embedding, metadata)
+│   │   │   ├── query_similar(query_embedding, n_results, user_ids)
+│   │   │   └── delete_topic(topic_id)
+│   │   │
+│   │   ├── mongo_client.py     # MongoDB operations (module ④ persistence)
+│   │   │   ├── get_user_profile(user_id)
+│   │   │   ├── update_user_profile(user_id, data)
+│   │   │   ├── store_topic(topic)
+│   │   │   ├── get_user_topics(user_id)
+│   │   │   ├── update_topic_timestamps(topic_id, timestamp)
+│   │   │   └── store_session(session_data)
+│   │   │
+│   │   └── redis_client.py     # Redis operations (module ② working buffer)
+│   │       ├── get_buffer(session_id)
+│   │       ├── set_buffer(session_id, buffer_state)
+│   │       ├── push_to_input_buffer(session_id, message)
+│   │       ├── get_retrieval_buffer(session_id)
+│   │       └── set_retrieval_buffer(session_id, topics)
+│   │
+│   ├── inference/
+│   │   ├── __init__.py
+│   │   │
+│   │   └── llm_client.py       # vLLM interaction
+│   │       ├── init_model(model_name)        # connect to vLLM server
+│   │       ├── generate(prompt, max_tokens)   # standard completion
+│   │       └── stream_generate(prompt)        # SSE streaming response
+│   │
+│   └── models/
+│       ├── __init__.py
+│       │
+│       └── schemas.py          # Pydantic models for all request/response shapes
+│           ├── ChatRequest / ChatResponse
+│           ├── Topic / TopicLink
+│           ├── ActivationResult / ActivationBreakdown
+│           ├── RetrieveRequest / RetrieveResponse
+│           ├── StoreRequest / StoreResponse
+│           ├── ContextWindow
+│           ├── BufferState
+│           └── ControlParams
+│
+├── eval/
+│   ├── __init__.py
+│   ├── run_locomo.py           # run LoCoMo benchmark
+│   │   ├── load_dataset()
+│   │   ├── run_single_hop()
+│   │   ├── run_multi_hop()
+│   │   ├── run_temporal()
+│   │   └── run_full_eval()
+│   │
+│   ├── ablation.py             # compare: raw vs topic store vs topic + decay
+│   │   ├── baseline_raw()            # Gemma 4B, no scaffolding
+│   │   ├── with_topic_store()        # Gemma 4B + topics, no decay
+│   │   ├── with_full_scaffold()      # Gemma 4B + topics + ACT-R decay
+│   │   └── compare_larger_model()    # Gemma 12B/27B raw baseline
+│   │
+│   └── metrics.py              # scoring functions
+│       ├── compute_rouge(pred, gold)
+│       ├── compute_bert_score(pred, gold)
+│       ├── compute_exact_match(pred, gold)
+│       └── aggregate_results(results)
+│
+└── scripts/
+    ├── start_vllm.sh           # launch vLLM with Gemma 4B
+    ├── seed_chroma.py          # preload test data into ChromaDB
+    └── reset_db.py             # clear all stores for fresh testing
