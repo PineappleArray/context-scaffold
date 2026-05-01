@@ -45,6 +45,7 @@ class PgClient:
             """, query_embedding, user_ids, n_results)
             return rows
 
+
     async def delete_topic(self, topic_id):
         async with self.pool.acquire() as conn:
             result = await conn.execute(

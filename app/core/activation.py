@@ -4,18 +4,19 @@ from app.models.schemas import (
     ActivationResult,
     ActivationBreakdown,
     ContextChunk,
+    ControlParams,
 )
 
-class activation:
+class Activation:
 
     # B(m) = ln(Σ t_k^(-d))
-    def base_level_learning(self, timestamps, current_time, decay) -> float:
-        elapsed_times = current_time - np.array(timestamps)
+    def base_level_learning(self, control_params: ControlParams) -> float:
+        elapsed_times = control_params.current_time - np.array(control_params.timestamps)
         elapsed_times = elapsed_times[elapsed_times > 0]  # Filter out non-positive elapsed times
         if len(elapsed_times) == 0:
             return float("-inf")
         else:
-            return np.log(np.sum(elapsed_times ** (-decay)))
+            return np.log(np.sum(elapsed_times ** (-control_params.decay)))
         
     # SA = Σ W_j * cos_sim(source_j, topic)
     def spreading_activation(self, query_embedding: list[float],topic_embedding: list[float],context_chunks: list[ContextChunk] | None = None,) -> float:
