@@ -1,34 +1,51 @@
-from db.pgclient import PgClient
-from activation import Activation
 from transformers import AutoTokenizer
+from app.db.pgclient import PgClient
+from app.core.activation import Activation
+from app.models.schemas import ContextWindow, ContextBlock
+
 
 class ContextBuilder:
     def __init__(self, pg_client: PgClient, activation: Activation):
         self.pg_client = pg_client
         self.activation = activation
 
-    async def build_context(self, query_embedding: list[float], user_ids: list[str], current_time: float, decay: float = 0.5, noise_sigma: float = 0.25, retrieval_threshold: float = -1.0) -> list[dict]:
-        rows = await self.pg_client.query_similar(query_embedding, n_results=100, user_ids=user_ids)
-        context = []
-        for row in rows:
-            activation_result = self.activation.total_activation(
-                topic_id=row["topic_id"],
-                timestamps=row["timestamps"],
-                current_time=current_time,
-                query_embedding=query_embedding,
-                topic_embedding=row["embedding"],
-                decay=decay,
-                noise_sigma=noise_sigma,
-                retrieval_threshold=retrieval_threshold,
-            )
-            if activation_result.above_threshold:
-                context.append({
-                    "topic_id": row["topic_id"],
-                    "content": row["content"],
-                    "entity_type": row["entity_type"],
-                    "confidence": row["confidence"],
-                    "activation": activation_result.total_activation,
-                    "activation_breakdown": activation_result.breakdown.dict(),
-                })
-        context.sort(key=lambda x: x["activation"], reverse=True)
-        return context
+    def build_context(self, retrieved_topics, recent_messages, max_tokens=4096):
+        used = 0
+        context_blocks = []
+
+        # system prompt
+        system = "You are a interacting with a user. Have a conversation with them. Use the provided context to inform your responses. If the context is not relevant, you can ignore it."
+        used += self.count_tokens(system)
+
+        # gets topics by their activation strength
+        for topic in sorted(retrieved_topics, key=lambda t: t.activation, reverse=True):
+            tokens = self.count_tokens(topic.content)
+            if used + tokens > max_tokens:
+                break
+            context_blocks.append(ContextBlock(content=topic.content, sources=[topic.topic_id], token_count=tokens))
+            used += tokens
+
+        # keeps the most recent messages until we hit the token limit
+        included_messages = []
+        for msg in reversed(recent_messages):
+            tokens = self.count_tokens(msg.content)
+            if used + tokens > max_tokens:
+                break
+            included_messages.insert(0, msg)
+            used += tokens
+
+        return ContextWindow(
+            system_prompt=system,
+            context_blocks=context_blocks,
+            recent_messages=included_messages,
+            total_tokens=used,
+            budget_remaining=max_tokens - used
+        )
+    
+    def count_tokens(self, text: str) -> int:
+        return len(self.tokenizer.encode(text))
+    
+    def __init__(self, pg_client: PgClient, activation: Activation):
+        self.pg_client = pg_client
+        self.activation = activation
+        self.tokenizer = AutoTokenizer.from_pretrained("google/gemma-3-4b-it")

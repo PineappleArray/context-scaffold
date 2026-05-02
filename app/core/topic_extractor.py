@@ -36,7 +36,6 @@ class TopicExtractor:
             ))
         return final_mappings
 
-
 #if __name__ == "__main__":
 #    extractor = TopicExtractor()
 #    topics = extractor.extract_topics("I found an apartment in Denver")
