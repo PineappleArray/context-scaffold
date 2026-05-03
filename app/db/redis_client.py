@@ -48,6 +48,10 @@ class RedisClient:
     async def get_buffer(self, session_id):
         return await self.client.hgetall(f"session:{session_id}")
     
+    async def get_active_users(self):
+        users = await self.client.smembers("users")
+        return list(users)
+    
 
 
 
