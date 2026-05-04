@@ -29,7 +29,7 @@ Thumbs.db
 *.bin
 *.safetensors
 *.gguf
-models/
+models/__pycache__/
 
 # ChromaDB local storage
 chroma_data/
@@ -48,3 +48,7 @@ logs/
 .pytest_cache/
 .coverage
 htmlcov/
+
+locomo/
+data/
+my_env/

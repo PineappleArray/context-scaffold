@@ -1,5 +1,6 @@
 import asyncpg
 from pgvector.asyncpg import register_vector
+from app.models.schemas import ExtractedTopic
 
 class PgClient:
     #async def init(self):
@@ -19,7 +20,7 @@ class PgClient:
             await register_vector(conn)
             await conn.execute("CREATE EXTENSION IF NOT EXISTS vector")
 
-    async def upsert_topic(self, topic):
+    async def upsert_topic(self, topic: ExtractedTopic, topic_id, user_id, session_id):
         async with self.pool.acquire() as conn:
             await register_vector(conn)
             await conn.execute("""
@@ -30,7 +31,7 @@ class PgClient:
                 ON CONFLICT (topic_id) DO UPDATE SET
                     embedding = $5, confidence = $7,
                     timestamps = $8, access_count = $9
-            """, topic.topic_id, topic.user_id, topic.session_id,
+            """, topic_id, user_id, topic.session_id,
                 topic.content, topic.embedding, topic.metadata.entity_type,
                 topic.metadata.confidence, topic.timestamps,
                 topic.access_count, topic.created_at)

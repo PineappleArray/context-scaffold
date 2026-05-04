@@ -19,7 +19,6 @@ async def startup():
     await redis_client.setup()
 
     extractor = TopicExtractor()
-    llm = Model()
     ctx_builder = ContextBuilder(pg, extractor)
 
     # inject into routes
@@ -28,7 +27,6 @@ async def startup():
         redis_client=redis_client,
         extractor=extractor,
         context_builder=ctx_builder,
-        llm_client=llm
     )
     memory.pg = pg
     topics.extractor = extractor

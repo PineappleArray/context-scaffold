@@ -8,8 +8,7 @@ import time
 import json
 
 class ProductionRules:
-    def __init__(self, pg_client, redis_client, extractor, context_builder, postgres):
-        self.postgres = postgres
+    def __init__(self, pg_client, redis_client, extractor, context_builder):
         self.pg_client = pg_client
         self.redis = redis_client
         self.extractor = extractor
@@ -18,7 +17,10 @@ class ProductionRules:
 
     async def process_input(self, message, user_id, session_id):
         topics = self.extractor.extract_topics(message) 
-        await self.postgres.store_topics(topics, user_id, session_id)
+        for topic in topics:
+            print(topic) 
+            topic_id = f"topic:{user_id}_{uuid.uuid4().hex[:8]}"
+            await self.pg_client.upsert_topic(topic, topic_id, user_id, session_id)
 
         embedding = self.generate_embedding(message)
 

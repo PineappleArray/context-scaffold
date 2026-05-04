@@ -48,4 +48,4 @@ class ContextBuilder:
     def __init__(self, pg_client: PgClient, activation: Activation):
         self.pg_client = pg_client
         self.activation = activation
-        self.tokenizer = AutoTokenizer.from_pretrained("google/gemma-3-4b-it")
+        self.tokenizer = AutoTokenizer.from_pretrained("google/gemma-4-E4B-it")
