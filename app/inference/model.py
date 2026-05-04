@@ -8,7 +8,7 @@ class Model:
             base_url=base_url,
             api_key="not-needed"
         )
-        self.model = "google/gemma-3-4b-it"
+        self.model = "google/gemma-4-E4B-it"
 
     async def generate(self, context_window):
         messages = [

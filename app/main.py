@@ -12,7 +12,7 @@ app = FastAPI(title="Context-Scaffold")
 
 @app.on_event("startup")
 async def startup():
-    pg = PgClient(os.getenv("DATABASE_URL"))
+    pg = PgClient()
     await pg.setup()
 
     redis_client = RedisClient()

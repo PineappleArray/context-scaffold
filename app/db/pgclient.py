@@ -2,14 +2,18 @@ import asyncpg
 from pgvector.asyncpg import register_vector
 
 class PgClient:
-    async def init(self):
-        self.pool = await asyncpg.create_pool(self.database_url)
-        async with self.pool.acquire() as conn:
-            await register_vector(conn)
-            with open("app/db/schema.sql") as f:
-                await conn.execute(f.read())
+    #async def init(self):
+    #    self.pool = await asyncpg.create_pool(self.database_url)
+    #    async with self.pool.acquire() as conn:
+    #        await register_vector(conn)
+    #        with open("app/db/schema.sql") as f:
+    #            await conn.execute(f.read())
 
-    async def init(self):
+    def __init__(self, database_url="postgresql://scaffold_user:scaffold_pass@localhost:5432/context_scaffold"):
+        self.database_url = database_url
+        self.pool = None
+
+    async def setup(self):
         self.pool = await asyncpg.create_pool(self.database_url)
         async with self.pool.acquire() as conn:
             await register_vector(conn)
@@ -67,3 +71,5 @@ class PgClient:
                     access_count = access_count + 1
                 WHERE topic_id = $1
             """, topic_id, timestamp)
+
+    
