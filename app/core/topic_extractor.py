@@ -1,11 +1,13 @@
 from keybert import KeyBERT
 import spacy
 from app.models.schemas import EntityType, ExtractedTopic
+from sentence_transformers import SentenceTransformer
 
 class TopicExtractor:
 
     def __init__(self):
-        self.kw_model = KeyBERT()
+        self.embed_model = SentenceTransformer("all-MiniLM-L6-v2")
+        self.kw_model = KeyBERT(model=self.embed_model)
         self.nlp = spacy.load("en_core_web_sm")
 
     def extract_topics(self, text, top_n=5):

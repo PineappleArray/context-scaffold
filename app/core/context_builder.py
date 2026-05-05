@@ -1,6 +1,6 @@
 from transformers import AutoTokenizer
 from app.db.pgclient import PgClient
-from app.core.activation import Activation
+from app.core.activation import total_activation
 from app.models.schemas import ContextWindow, ContextBlock
 
 

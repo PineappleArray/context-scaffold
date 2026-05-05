@@ -21,12 +21,15 @@ async def startup():
     extractor = TopicExtractor()
     ctx_builder = ContextBuilder(pg, extractor)
 
+    model_client = Model()
+
     # inject into routes
     chat.production_rules = ProductionRules(
         pg_client=pg,
         redis_client=redis_client,
         extractor=extractor,
         context_builder=ctx_builder,
+        llm_client=model_client
     )
     memory.pg = pg
     topics.extractor = extractor

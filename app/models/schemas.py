@@ -188,3 +188,24 @@ class ContextBuildRequest(BaseModel):
     sender_user_id: str
     active_users: list[str]
     max_tokens: int = 4096
+
+# Topic of response summary
+class RetrievedTopicSummary(BaseModel):
+    topic_id: str
+    content: str
+    activation: float
+    source_user: str
+
+# Summary of newly extracted topic
+class ExtractedTopicSummary(BaseModel):
+    topic_id: str
+    content: str
+    entity_type: EntityType
+
+class ChatResponse(BaseModel):
+    session_id: str
+    response: str
+    retrieved_topics: list[RetrievedTopicSummary] = Field(default_factory=list)
+    new_topics_extracted: list[ExtractedTopicSummary] = Field(default_factory=list)
+    context_window_tokens_used: int = 0
+    topics_pruned: int = 0

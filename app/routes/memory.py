@@ -5,7 +5,7 @@ from app.models.schemas import (
     ReinforceRequest, ReinforceResponse
 )
 from app.db.pgclient import PgClient
-from app.core.activation import Activation
+from app.core.activation import total_activation
 
 router = APIRouter()
 
@@ -23,7 +23,7 @@ async def retrieve(request: RetrieveRequest) -> RetrieveResponse:
     pruned_below_threshold = 0
 
     for row in rows:
-        result = Activation(
+        result = total_activation(
             topic_id=row["topic_id"],
             timestamps=row["timestamps"],
             current_time=request.current_time,
