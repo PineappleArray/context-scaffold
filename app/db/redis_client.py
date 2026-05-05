@@ -27,7 +27,7 @@ class RedisClient:
         await self.client.ltrim(key, -50, -1)
     
     async def get_messages(self, session_id, n=10):
-        self.refresh_session(session_id)
+        await self.refresh_session(session_id)
         key = f"messages:{session_id}"
         return await self.client.lrange(key, -n, -1)
     

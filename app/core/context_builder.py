@@ -5,9 +5,6 @@ from app.models.schemas import ContextWindow, ContextBlock
 
 
 class ContextBuilder:
-    def __init__(self, pg_client: PgClient, activation: Activation):
-        self.pg_client = pg_client
-        self.activation = activation
 
     def build_context(self, retrieved_topics, recent_messages, max_tokens=4096):
         used = 0
@@ -18,17 +15,21 @@ class ContextBuilder:
         used += self.count_tokens(system)
 
         # gets topics by their activation strength
-        for topic in sorted(retrieved_topics, key=lambda t: t.activation, reverse=True):
-            tokens = self.count_tokens(topic.content)
+        for topic in sorted(retrieved_topics, key=lambda t: t["total_activation"], reverse=True):
+            tokens = self.count_tokens(topic["content"])
             if used + tokens > max_tokens:
                 break
-            context_blocks.append(ContextBlock(content=topic.content, sources=[topic.topic_id], token_count=tokens))
+            context_blocks.append(ContextBlock(
+                content=topic["content"],
+                token_count=tokens,
+                sources=[topic["topic_id"]]
+            ))
             used += tokens
 
         # keeps the most recent messages until we hit the token limit
         included_messages = []
         for msg in reversed(recent_messages):
-            tokens = self.count_tokens(msg.content)
+            tokens = self.count_tokens(msg["content"])
             if used + tokens > max_tokens:
                 break
             included_messages.insert(0, msg)
@@ -45,7 +46,6 @@ class ContextBuilder:
     def count_tokens(self, text: str) -> int:
         return len(self.tokenizer.encode(text))
     
-    def __init__(self, pg_client: PgClient, activation: Activation):
+    def __init__(self, pg_client: PgClient):
         self.pg_client = pg_client
-        self.activation = activation
         self.tokenizer = AutoTokenizer.from_pretrained("google/gemma-4-E4B-it")

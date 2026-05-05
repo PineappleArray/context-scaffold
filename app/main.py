@@ -19,7 +19,7 @@ async def startup():
     await redis_client.setup()
 
     extractor = TopicExtractor()
-    ctx_builder = ContextBuilder(pg, extractor)
+    ctx_builder = ContextBuilder(pg)#, extractor)
 
     model_client = Model()
 

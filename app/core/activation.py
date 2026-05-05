@@ -7,19 +7,17 @@ from app.models.schemas import (
     ControlParams,
 )
 
-
-
 # B(m) = ln(Σ t_k^(-d))
-def base_level_learning(self, control_params: ControlParams) -> float:
-    elapsed_times = control_params.current_time - np.array(control_params.timestamps)
+def base_level_learning(timestamps: list[float], current_time: float, decay: float) -> float:
+    elapsed_times = current_time - np.array(timestamps)
     elapsed_times = elapsed_times[elapsed_times > 0]  # Filter out non-positive elapsed times
     if len(elapsed_times) == 0:
         return float("-inf")
     else:
-        return np.log(np.sum(elapsed_times ** (-control_params.decay)))
+        return np.log(np.sum(elapsed_times ** (-decay)))
         
 # SA = Σ W_j * cos_sim(source_j, topic)
-def spreading_activation(self, query_embedding: list[float],topic_embedding: list[float],context_chunks: list[ContextChunk] | None = None,) -> float:
+def spreading_activation(query_embedding: list[float],topic_embedding: list[float],context_chunks: list[ContextChunk] | None = None,) -> float:
     def cosine_similarity(vec_a, vec_b):
         arr_a = np.array(vec_a)
         arr_b = np.array(vec_b)
@@ -35,21 +33,21 @@ def spreading_activation(self, query_embedding: list[float],topic_embedding: lis
             spreading_activation += chunk.weight * cosine_similarity(chunk.embedding, topic_embedding)
     return spreading_activation
 
-def add_noise(self, sigma: float = 0.25) -> float:
+def add_noise(sigma: float = 0.25) -> float:
     return np.random.normal(0, sigma)
 
-def total_activation(self, topic_id: str, timestamps: list[float], current_time: float, query_embedding: list[float], topic_embedding: list[float], decay: float = 0.5, noise_sigma: float = 0.25, retrieval_threshold: float = -1.0, context_chunks: list[ContextChunk] | None = None,
+def total_activation(topic_id: str, timestamps: list[float], current_time: float, query_embedding: list[float], topic_embedding: list[float], decay: float = 0.5, noise_sigma: float = 0.25, retrieval_threshold: float = -1.0, context_chunks: list[ContextChunk] | None = None,
 ) -> ActivationResult:
-    b = self.base_level_learning(timestamps, current_time, decay)
-    spreading_activation = self.spreading_activation(query_embedding, topic_embedding, context_chunks)
-    noise = self.add_noise(noise_sigma)
-    total = b + spreading_activation + noise
+    b = base_level_learning(timestamps, current_time, decay)
+    spreading_act = spreading_activation(query_embedding, topic_embedding, context_chunks)
+    noise = add_noise(noise_sigma)
+    total = b + spreading_act + noise
     return ActivationResult(
         topic_id=topic_id,
         total_activation=total,
          breakdown=ActivationBreakdown(
             base_level=b,
-            spreading=spreading_activation,
+            spreading=spreading_act,
             noise=noise,
         ),
         above_threshold=total >= retrieval_threshold,

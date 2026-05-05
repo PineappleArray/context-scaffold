@@ -1,9 +1,9 @@
 import numpy as np
 from openai import AsyncOpenAI
 from transformers import AutoTokenizer
-from app.core.activation import Activation
+from app.core.activation import total_activation
 class Model:
-    def __init__(self, base_url="http://localhost:8000/v1"):
+    def __init__(self, base_url="http://localhost:8000/8000"):
         self.client = AsyncOpenAI(
             base_url=base_url,
             api_key="not-needed"

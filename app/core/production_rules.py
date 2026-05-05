@@ -76,12 +76,18 @@ class ProductionRules:
                 topic_embedding=list(row["embedding"]),
                 decay=0.5,
                 noise_sigma=0.25,
-                retrieval_threshold=-1.0
+            retrieval_threshold=-1.0
             )
-            if result.above_threshold:
-                scored.append(result)
-            else:
-                pruned += 1
+        if result.above_threshold:
+            scored.append({
+                "topic_id": result.topic_id,
+                "content": row["content"],
+                "user_id": row["user_id"],
+                "total_activation": result.total_activation,
+                "breakdown": result.breakdown
+            })
+        else:
+            pruned += 1
 
         # 7. reinforce topics that passed threshold
         for s in scored:
@@ -101,7 +107,7 @@ class ProductionRules:
             "content": message,
             "timestamp": time.time()
         })
-        await self.redis.add_message(session_id, msg_json)
+        await self.redis.add_messages(session_id, msg_json)
         await self.redis.refresh_session(session_id)
 
         # 10. get recent messages for context
@@ -133,14 +139,10 @@ class ProductionRules:
             response=response,
             retrieved_topics=[
                 RetrievedTopicSummary(
-                    topic_id=s.topic_id,
-                    content=next(
-                        (r["content"] for r in rows if r["topic_id"] == s.topic_id), ""
-                    ),
-                    activation=s.total_activation,
-                    source_user=next(
-                        (r["user_id"] for r in rows if r["topic_id"] == s.topic_id), ""
-                    )
+                    topic_id=s["topic_id"],
+                    content=s["content"],
+                    activation=s["total_activation"],
+                    source_user=s["user_id"]
                 ) for s in scored
             ],
             new_topics_extracted=new_topics,
